@@ -21,7 +21,6 @@ def timelineCollection(userIDArg):
             f.write(record+'\n')
 
 def parseTimeline(timeline):
-    tweetList = []
     with jsonlines.open(timeline, 'r') as f:
         with jsonlines.open("data/parsedTimeline.jsonl", 'w') as fw:
             for line in f:
@@ -37,7 +36,6 @@ def parseTimeline(timeline):
 
 def graphCreation(data):
     G = nx.DiGraph()
-    nodeDict = {}
 
     with jsonlines.open(data, 'r') as f:
         for line in f:
