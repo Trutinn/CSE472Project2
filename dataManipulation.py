@@ -15,7 +15,7 @@ access_token_secret = 'aTC8bo4Gov5svtEmu68ULNJDHiDCoiMWRR05tHcKc5mr7'
 t = Twarc(consumer_key, consumer_secret, access_token, access_token_secret)
 
 
-def timelineCollection(userIDArg, option):
+def timelineCollection(userIDArg, option):  # option: 0 for bot, 1 for verified
     if option == 0 or option == 1:
         if option == 0:
             fileName = "accountInfo/botTimeline/timeline" + str(userIDArg).strip() + ".jsonl"
@@ -60,9 +60,16 @@ def graphCreation(data):
     return G
 
 
-def saveGraph(graph, userIDArg):
-    with open("accountInfo/verifiedGraphs/" + str(userIDArg).strip() + ".json", 'w') as f:
-        json.dump(json_graph.node_link_data(graph), f)
+def saveGraph(graph, userIDArg, option):  # option: 0 for bot, 1 for verified
+    if option == 0 or option == 1:
+        if option == 0:
+            with open("accountInfo/botGraphs/" + str(userIDArg).strip() + ".json", 'w') as f:
+                json.dump(json_graph.node_link_data(graph), f)
+        elif option == 1:
+            with open("accountInfo/verifiedGraphs/" + str(userIDArg).strip() + ".json", 'w') as f:
+                json.dump(json_graph.node_link_data(graph), f)
+    else:
+        print("ERROR: Option must be either 0 or 1. 0 for bot dataset and 1 for verified dataset.")
 
 
 def loadGraph(graphJson):
@@ -78,7 +85,7 @@ def parseDataset(dataset, outputFile):
                 fw.write(int(line[0]))
 
 
-def bulkJsonCreation(idFile, option):
+def bulkJsonCreation(idFile, option):  # option: 0 for bot, 1 for verified
     with open(idFile, 'r') as f:
         counter = 1
         for idLine in f:
@@ -88,14 +95,14 @@ def bulkJsonCreation(idFile, option):
         print("done")
 
 
-def bulkGraphCreation(timelineDir):
+def bulkGraphCreation(timelineDir, option):  # option: 0 for bot, 1 for verified
     counter = 1
     for file in os.listdir(timelineDir):
         userID = file.replace("timeline", "")
         userID = userID.replace(".jsonl", "")
         parsedData = parseTimeline(timelineDir + file)
         GTemp = graphCreation(parsedData)
-        saveGraph(GTemp, userID)
+        saveGraph(GTemp, userID, option)
         print(counter)
         counter += 1
     print("done")
@@ -107,6 +114,6 @@ def bulkGraphCreation(timelineDir):
 # # plt.close()
 
 
-bulkJsonCreation("data/botwikiID.txt", 0)
+#bulkJsonCreation("data/botwikiID.txt", 0)
 
-# bulkGraphCreation("accountInfo/verifiedTimeline/")
+bulkGraphCreation("accountInfo/botTimeline/", 0)
