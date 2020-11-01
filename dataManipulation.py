@@ -3,6 +3,7 @@ import jsonlines
 from twarc import Twarc
 import networkx as nx
 import matplotlib.pyplot as plt
+from networkx.readwrite import json_graph
 
 consumer_key = '2qGxcEviGiPDBg026BGAJPwR2'
 consumer_secret = 'vYdce0YD6mBitSOcOf0c9OcHWkJVFf3hjjMi5lBBHEKKq6SNd0'
@@ -50,6 +51,18 @@ def graphCreation(data):
                         G.add_edge(user['id'], user2['id'])
 
         return G
+
+
+def saveGraph(graph):
+    with open(graph, 'w') as f:
+        json.dump(json_graph.node_link_data(graph), f)
+
+
+def loadGraph(graphJson):
+    with open(graphJson, 'r') as f:
+        graph = json.load(f)
+    return json_graph.node_link_graph(graph)
+
 
 G = graphCreation("data/parsedTimeline.jsonl")
 nx.draw(G, node_size=.1, width=.5)  # draw graph
