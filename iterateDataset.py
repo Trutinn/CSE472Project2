@@ -9,7 +9,16 @@ access_token_secret = 'aTC8bo4Gov5svtEmu68ULNJDHiDCoiMWRR05tHcKc5mr7'
 
 t = Twarc(consumer_key, consumer_secret, access_token, access_token_secret)
 
-with open('twitterdataset/verified-2019.tsv') as f:
-    with jsonlines.open("data/verifiedId.txt", 'w') as fw:
-        for line in csv.reader(f, delimiter='\t'):
-            fw.write(int(line[0]))
+
+def parseVerifiedDataset(dataset):
+    with open(dataset) as f:
+        with jsonlines.open("data/verifiedId.txt", 'w') as fw:
+            for line in csv.reader(f, delimiter='\t'):
+                fw.write(int(line[0]))
+
+
+def parseBotDataset(dataset):
+    with open(dataset) as f:
+        with jsonlines.open("data/botId.txt", 'w') as fw:
+            for line in csv.reader(f, delimiter='\t'):
+                fw.write(int(line[0]))
