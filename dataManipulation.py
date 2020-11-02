@@ -6,6 +6,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from networkx.readwrite import json_graph
 import os
+from karateclub import Graph2Vec
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import auc, accuracy_score, confusion_matrix, mean_squared_error
 
 consumer_key = '2qGxcEviGiPDBg026BGAJPwR2'
 consumer_secret = 'vYdce0YD6mBitSOcOf0c9OcHWkJVFf3hjjMi5lBBHEKKq6SNd0'
@@ -107,13 +111,48 @@ def bulkGraphCreation(timelineDir, option):  # option: 0 for bot, 1 for verified
         counter += 1
     print("done")
 
-# G = graphCreation("data/parsedTimeline.jsonl")
-# # saveGraph(G)
-# # nx.draw(G, node_size=.1, width=.5)  # draw graph
-# # plt.show()
-# # plt.close()
+
+def convertTsvToCsv(datasetDir):  # need to convert tsv to csv for pandas
+    for file in os.listdir(datasetDir):
+        newFile = datasetDir+file.replace(".tsv",".csv")
+        with open(datasetDir+file,'r') as f:
+            with open(newFile,'w') as fw:
+                for line in f:
+                    newLine = line.replace("\t", ",")
+                    fw.write(newLine)
+
+
+def mergeDataset(datasetDir):  # merge all csv datasets for training and testing
+    newFile = datasetDir + "mergedDataset.csv"
+    with open(newFile, 'w') as fw:
+        for file in os.listdir(datasetDir):
+            if ".csv" in str(file) and "mergedDataset" not in str(file):
+                with open(datasetDir+file, 'r') as f:
+                    for line in f:
+                        fw.write(line)
+
+
+def JSONtoGraph(jsonDir):
+    for file in os.listdir(jsonDir):
+        GTemp = loadGraph(jsonDir+file)
+        convertGTemp = nx.convert_node_labels_to_integers(GTemp)
+        model = Graph2Vec(dimensions=64)
+        unDirconvertedGTemp = convertGTemp.to_undirected()
+        model.fit([unDirconvertedGTemp])
+        modelFrame = pd.DataFrame(model.get_embedding())
+
+
+        break
 
 
 #bulkJsonCreation("data/botwikiID.txt", 0)
 
-bulkGraphCreation("accountInfo/botTimeline/", 0)
+#bulkGraphCreation("accountInfo/botTimeline/", 0)
+
+#JSONtoGraph("accountInfo/botGraphs/")
+
+#mergeDataset("twitterdataset/")
+
+
+
+
