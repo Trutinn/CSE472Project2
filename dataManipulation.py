@@ -10,6 +10,7 @@ from karateclub import Graph2Vec
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import auc, accuracy_score, confusion_matrix, mean_squared_error
+import xgboost as xgb
 
 consumer_key = '2qGxcEviGiPDBg026BGAJPwR2'
 consumer_secret = 'vYdce0YD6mBitSOcOf0c9OcHWkJVFf3hjjMi5lBBHEKKq6SNd0'
@@ -114,9 +115,9 @@ def bulkGraphCreation(timelineDir, option):  # option: 0 for bot, 1 for verified
 
 def convertTsvToCsv(datasetDir):  # need to convert tsv to csv for pandas
     for file in os.listdir(datasetDir):
-        newFile = datasetDir+file.replace(".tsv",".csv")
-        with open(datasetDir+file,'r') as f:
-            with open(newFile,'w') as fw:
+        newFile = datasetDir + file.replace(".tsv", ".csv")
+        with open(datasetDir + file, 'r') as f:
+            with open(newFile, 'w') as fw:
                 for line in f:
                     newLine = line.replace("\t", ",")
                     fw.write(newLine)
@@ -127,32 +128,78 @@ def mergeDataset(datasetDir):  # merge all csv datasets for training and testing
     with open(newFile, 'w') as fw:
         for file in os.listdir(datasetDir):
             if ".csv" in str(file) and "mergedDataset" not in str(file):
-                with open(datasetDir+file, 'r') as f:
+                with open(datasetDir + file, 'r') as f:
                     for line in f:
                         fw.write(line)
 
 
-def JSONtoGraph(jsonDir):
-    for file in os.listdir(jsonDir):
-        GTemp = loadGraph(jsonDir+file)
-        convertGTemp = nx.convert_node_labels_to_integers(GTemp)
-        model = Graph2Vec(dimensions=64)
-        unDirconvertedGTemp = convertGTemp.to_undirected()
-        model.fit([unDirconvertedGTemp])
-        modelFrame = pd.DataFrame(model.get_embedding())
+def predictOn1Graph(filePath):
+    GTemp = loadGraph(filePath)
+    convertGTemp = nx.convert_node_labels_to_integers(GTemp)
+    model = Graph2Vec(dimensions=64)
+    unDirconvertedGTemp = convertGTemp.to_undirected()
+    model.fit([unDirconvertedGTemp])
+    modelFrame = pd.DataFrame(model.get_embedding())
+
+    classification_model = xgb.XGBClassifier(objective="binary:logistic", random_state=42, learning_rate=0.05,
+                                             n_estimators=5000, early_stopping_rounds=10)
+    classification_model.load_model("data/graph_classifier_3.json")
+    print("Predicting...")
+    pred = classification_model.predict(modelFrame)
+
+    print("User: " + pred[0])
 
 
-        break
+# bulkJsonCreation("data/botwikiID.txt", 0)
+
+# bulkGraphCreation("accountInfo/botTimeline/", 0)
+
+# JSONtoGraph("accountInfo/botGraphs/")
+
+# mergeDataset("twitterdataset/")
 
 
-#bulkJsonCreation("data/botwikiID.txt", 0)
+# colList = ["id", "label"]
+# dataset = pd.read_csv("twitterdataset/mergedDataset.csv", usecols=colList)
+# X = dataset.drop(columns=["label"])
+# Y = dataset["label"]
+#
+# seed = 42
+# test_size = .2
+# X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=seed)
+#
+# classification_model = xgb.XGBClassifier(objective="binary:logistic", random_state=42, learning_rate=0.05, n_estimators=5000,
+#                           early_stopping_rounds=10)
+# classification_model.fit(X_train, y_train)
+#
+# y_pred = classification_model.predict(X_test)
+# accuracy = accuracy_score(y_test, y_pred)
+# print(accuracy)
+#
+# predictOn1Graph("accountInfo/botGraphs/960538579993878529.json")
 
-#bulkGraphCreation("accountInfo/botTimeline/", 0)
+GTemp = loadGraph("accountInfo/botGraphs/12112272.json")
+convertGTemp = nx.convert_node_labels_to_integers(GTemp)
+model = Graph2Vec(dimensions=64)
+unDirconvertedGTemp = convertGTemp.to_undirected()
+model.fit([unDirconvertedGTemp])
+modelFrame = pd.DataFrame(model.get_embedding())
 
-#JSONtoGraph("accountInfo/botGraphs/")
+mergedDataset = pd.read_csv("twitterdataset/mergedDataset.csv")
+X = mergedDataset.drop(columns=['label'])
+Y = mergedDataset['label']
 
-#mergeDataset("twitterdataset/")
+seed = 42
+test_size = 0.2
+X_train, X_test, y_train, y_test = train_test_split(X.values, Y.values, test_size=test_size, random_state=seed)
 
+classModel = xgb.XGBClassifier(objective="binary:logistic", random_state=42, learning_rate=0.05, n_estimators=5000, early_stopping_rounds=10)
+classModel.fit(X_train, y_train)
 
-
-
+y_pred = classModel.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(accuracy)
+print(modelFrame)
+print(modelFrame.values)
+pred = classModel.predict(modelFrame)
+print("USER" + ': ' + pred[0])
