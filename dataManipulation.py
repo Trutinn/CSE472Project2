@@ -216,7 +216,7 @@ def fileLen(fileName):
     return i + 1
 
 
-def createModel(filePath):
+def createModel(filePath, option):  # option = 0 for just model creation, option = 1 for testing the model on dataset (This takes a bit of time)
     dataset = pd.read_csv(filePath, sep=',', header=0)
     dataset.head()
     X = dataset.iloc[:, 1:]
@@ -225,7 +225,15 @@ def createModel(filePath):
     LR = LogisticRegression(random_state=0, solver='lbfgs', multi_class='ovr').fit(X, Y)
     accuracy = round(LR.score(X, Y), 4)
     print("Accuracy of the model is: ", round(accuracy*100, 4), "%")
-
+    if option == 1:
+        totalCount = 0
+        correctCount = 0
+        for i in range(0, fileLen(filePath)-1):
+            if (Y[i].strip() == 'bot' and str(LR.predict(X.iloc[i:, :])[0]).strip() == 'bot') \
+                    or (Y[i].strip() == 'human' and str(LR.predict(X.iloc[i:, :])[0]).strip() == 'human'):
+                correctCount += 1
+            totalCount += 1
+        print("Tested accuracy is: ", round(correctCount/totalCount*100, 4), "%")
 
 
 # TwitterID Dataset -> csvToTimeline(dataset)  (creates a bunch of timeline files) ->
@@ -236,10 +244,16 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('-f', '--flag', type=int, default=0, help='0: Only executing model creation with given feature vector csv. 1: Execution of all steps, this is limited by the TwitterAPI.')
     arg_parser.add_argument('-i', '--input', type=str, default='information/userDataset.csv', help='Specify path to your own dataset. Default will use the dataset provided')
+    arg_parser.add_argument('-t', '--test', type=str, default='information/graphFeatures.csv', help='Specify path to your own graph feature vector file. Default will use the graph feature vector file provided')
+    arg_parser.add_argument('-r', '--record', type=int, default=0, help='0: To not test model on custom graph feature vector file. 1: Test model on custom graph feature vector file')
 
     ns, args = arg_parser.parse_known_args(sys.argv)
     if not os.path.exists(ns.input):
         print("ERROR: Input dataset path does not exist!")
+    elif not os.path.exists(ns.test):
+        print("ERROR: Input graph vector file path does not exist!")
+    elif ns.record != 0 and ns.record != 1:
+        print("ERROR: Record flag is incorrect!")
     else:
         if not os.path.isdir("information/botGraphs"):
             os.mkdir("information/botGraphs")
@@ -250,13 +264,13 @@ if __name__ == '__main__':
         if not os.path.isdir("information/humanTimeline"):
             os.mkdir("information/humanTimeline")
         if ns.flag == 0:
-            createModel('information/graphFeatures.csv')  # Creates the model with the feature vectors created
+            createModel(ns.test, ns.record)  # Creates the model with the feature vectors created
         elif ns.flag == 1:
             csvToTimeline(ns.input)  # Path to csv where each line is twitterID, label(bot/human). This is limited by TwitterAPI.
             bulkGraphCreation("information/botTimeline/", 0)  # Create activity graph for all bot timelines
             bulkGraphCreation("information/humanTimeline/", 1)  # Create activity graph for all human
             bulkGraphsToFeatures()  # Creates the features vector for each graph and stores them in a csv
-            createModel('information/graphFeatures.csv')  # Creates the model with the feature vectors
+            createModel(ns.test, ns.record)  # Creates the model with the feature vectors.
         else:
             print("ERROR: --flag value is incorrect. Type python dataManipulation.py -h")
 
