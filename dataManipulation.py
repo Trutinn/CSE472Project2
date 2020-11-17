@@ -242,7 +242,7 @@ def createModel(filePath, option):  # option = 0 for just model creation, option
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('-f', '--flag', type=int, default=0, help='0: only executing model creation with given feature vector csv. 1: execution of all steps.')
+    arg_parser.add_argument('-f', '--flag', type=int, default=0, help='0: Only executing model creation with given feature vector csv. 1: Execution of all steps, this is limited by the TwitterAPI.')
     arg_parser.add_argument('-i', '--input', type=str, default='information/userDataset.csv', help='Specify path to your own dataset. Default will use the dataset provided')
 
     ns, args = arg_parser.parse_known_args(sys.argv)
