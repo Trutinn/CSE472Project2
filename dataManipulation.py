@@ -249,6 +249,14 @@ if __name__ == '__main__':
     if not os.path.exists(ns.input):
         print("ERROR: Input dataset path does not exist!")
     else:
+        if not os.path.isdir("information/botGraphs"):
+            os.mkdir("information/botGraphs")
+        if not os.path.isdir("information/botTimeline"):
+            os.mkdir("information/botTimeline")
+        if not os.path.isdir("information/humanGraphs"):
+            os.mkdir("information/humanGraphs")
+        if not os.path.isdir("information/humanTimeline"):
+            os.mkdir("information/humanTimeline")
         if ns.flag == 0:
             createModel('information/graphFeatures.csv', 1)  # Creates the model with the feature vectors created
         elif ns.flag == 1:
