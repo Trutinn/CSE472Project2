@@ -216,7 +216,7 @@ def fileLen(fileName):
     return i + 1
 
 
-def createModel(filePath, option):  # option = 0 for just model creation, option = 1 for testing the model on dataset (This takes a bit of time)
+def createModel(filePath):
     dataset = pd.read_csv(filePath, sep=',', header=0)
     dataset.head()
     X = dataset.iloc[:, 1:]
@@ -225,15 +225,7 @@ def createModel(filePath, option):  # option = 0 for just model creation, option
     LR = LogisticRegression(random_state=0, solver='lbfgs', multi_class='ovr').fit(X, Y)
     accuracy = round(LR.score(X, Y), 4)
     print("Accuracy of the model is: ", round(accuracy*100, 4), "%")
-    if option == 1:
-        totalCount = 0
-        correctCount = 0
-        for i in range(0, fileLen(filePath)-1):
-            if (Y[i].strip() == 'bot' and str(LR.predict(X.iloc[i:, :])[0]).strip() == 'bot') \
-                    or (Y[i].strip() == 'human' and str(LR.predict(X.iloc[i:, :])[0]).strip() == 'human'):
-                correctCount += 1
-            totalCount += 1
-        print("Tested accuracy is: ", round(correctCount/totalCount*100, 4), "%")
+
 
 
 # TwitterID Dataset -> csvToTimeline(dataset)  (creates a bunch of timeline files) ->
@@ -258,13 +250,13 @@ if __name__ == '__main__':
         if not os.path.isdir("information/humanTimeline"):
             os.mkdir("information/humanTimeline")
         if ns.flag == 0:
-            createModel('information/graphFeatures.csv', 1)  # Creates the model with the feature vectors created
+            createModel('information/graphFeatures.csv')  # Creates the model with the feature vectors created
         elif ns.flag == 1:
             csvToTimeline(ns.input)  # Path to csv where each line is twitterID, label(bot/human). This is limited by TwitterAPI.
             bulkGraphCreation("information/botTimeline/", 0)  # Create activity graph for all bot timelines
             bulkGraphCreation("information/humanTimeline/", 1)  # Create activity graph for all human
             bulkGraphsToFeatures()  # Creates the features vector for each graph and stores them in a csv
-            createModel('information/graphFeatures.csv', 1)  # Creates the model with the feature vectors
+            createModel('information/graphFeatures.csv')  # Creates the model with the feature vectors
         else:
             print("ERROR: --flag value is incorrect. Type python dataManipulation.py -h")
 
