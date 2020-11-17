@@ -3,15 +3,12 @@ import json
 import jsonlines
 from twarc import Twarc
 import networkx as nx
-import matplotlib.pyplot as plt
 from networkx.readwrite import json_graph
 import os
 import pandas as pd
 from karateclub import Graph2Vec
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import auc, accuracy_score, confusion_matrix, mean_squared_error
 from sklearn.linear_model import LogisticRegression
-import random
+
 
 consumer_key = '2qGxcEviGiPDBg026BGAJPwR2'
 consumer_secret = 'vYdce0YD6mBitSOcOf0c9OcHWkJVFf3hjjMi5lBBHEKKq6SNd0'
@@ -20,6 +17,7 @@ access_token_secret = 'aTC8bo4Gov5svtEmu68ULNJDHiDCoiMWRR05tHcKc5mr7'
 
 t = Twarc(consumer_key, consumer_secret, access_token, access_token_secret)
 
+# Data collection section
 
 def csvToTimeline(filePath):
     counter = 1
@@ -36,12 +34,12 @@ def csvToTimeline(filePath):
                 timelineCollection(id, 1)
 
 
-def timelineCollection(userIDArg, option):  # option: 0 for bot, 1 for verified  # MUST CHANGE ABSOLUTE PATHS
+def timelineCollection(userIDArg, option):  # option: 0 for bot, 1 for verified
     if option == 0 or option == 1:
         if option == 0:
-            fileName = "E:/Users/Preston/CSE472P2AccountInfo/botTimeline/timeline" + str(userIDArg).strip() + ".jsonl"
+            fileName = "information/botTimeline/timeline" + str(userIDArg).strip() + ".jsonl"
         elif option == 1:
-            fileName = "E:/Users/Preston/CSE472P2AccountInfo/verifiedTimeline/timeline" + str(userIDArg).strip() + ".jsonl"
+            fileName = "information/humanTimeline/timeline" + str(userIDArg).strip() + ".jsonl"
         with open(fileName, 'w') as f:
             for line in t.timeline(user_id=int(userIDArg)):
                 record = json.dumps(line)
@@ -56,7 +54,6 @@ def parseTimeline(timeline):
         for line in f:
             tweetDict = {}
             tweetDict['tweet_id'] = line['id']
-            # tweetDict['tweet_text'] = line['full_text']
             tweetDict['date'] = line['created_at']
             tweetDict['user_id'] = line['user']['id']
             tweetDict['follower_count'] = line['user']['followers_count']
@@ -65,6 +62,7 @@ def parseTimeline(timeline):
             timelineList.append(tweetDict)
     return timelineList
 
+# Data manipulation section
 
 def graphCreation(data):
     G = nx.DiGraph()
@@ -77,17 +75,16 @@ def graphCreation(data):
                 G.add_node(user2['id'])
                 if user['id'] != user2['id']:
                     G.add_edge(user['id'], user2['id'])
-
     return G
 
 
 def saveGraph(graph, userIDArg, option):  # option: 0 for bot, 1 for verified
     if option == 0 or option == 1:
         if option == 0:
-            with open("accountInfo/botGraphs/" + str(userIDArg).strip() + ".json", 'w') as f:
+            with open("information/botGraphs/" + str(userIDArg).strip() + ".json", 'w') as f:
                 json.dump(json_graph.node_link_data(graph), f)
         elif option == 1:
-            with open("accountInfo/verifiedGraphs/" + str(userIDArg).strip() + ".json", 'w') as f:
+            with open("information/humanGraphs/" + str(userIDArg).strip() + ".json", 'w') as f:
                 json.dump(json_graph.node_link_data(graph), f)
     else:
         print("ERROR: Option must be either 0 or 1. 0 for bot dataset and 1 for verified dataset.")
@@ -106,17 +103,17 @@ def parseDataset(dataset, outputFile):
                 fw.write(int(line[0]))
 
 
-def bulkJsonCreation(idFile, option):  # option: 0 for bot, 1 for verified
+def bulkJsonCreation(idFile, option):  # option: 0 for bot, 1 for human
     with open(idFile, 'r') as f:
         counter = 1
         for idLine in f:
             timelineCollection(idLine, option)
-            print(counter)
+            print("Processes completed: ", counter)
             counter += 1
-        print("done")
+        print("Bulk JSON Creation Done")
 
 
-def bulkGraphCreation(timelineDir, option):  # option: 0 for bot, 1 for verified
+def bulkGraphCreation(timelineDir, option):  # option: 0 for bot, 1 for human
     counter = 1
     for file in os.listdir(timelineDir):
         if os.stat(timelineDir + file).st_size == 0:
@@ -128,9 +125,9 @@ def bulkGraphCreation(timelineDir, option):  # option: 0 for bot, 1 for verified
             parsedData = parseTimeline(timelineDir + file)
             GTemp = graphCreation(parsedData)
             saveGraph(GTemp, userID, option)
-        print(counter)
+        print("Processes completed: ", counter)
         counter += 1
-    print("done")
+    print("Bulk Graph Creation Done")
 
 
 def convertTsvToCsv(datasetDir):  # need to convert tsv to csv for pandas
@@ -175,8 +172,8 @@ def convertGraphToVec(filePath):  # returns 0 on FileNotFoundError, returns 1 if
 
 def bulkGraphsToFeatures():
     pd.set_option("display.max_rows", None, "display.max_columns", None)
-    with open("data/graphDataNew.csv", 'w') as fw:
-        with open("data/mergedDatasetNew.csv", 'r') as f:
+    with open("information/graphFeatures.csv", 'w') as fw:
+        with open("information/userDataset.csv", 'r') as f:
             counter = 1
             for line in f:
                 print(counter)
@@ -185,11 +182,11 @@ def bulkGraphsToFeatures():
                 id = splitLine[0]
                 label = splitLine[1]
                 if label.strip() == "human":
-                    graphFile = "accountInfo/verifiedGraphs/" + id + ".json"
+                    graphFile = "information/humanGraphs/" + id + ".json"
                 elif label.strip() == "bot":
-                    graphFile = "accountInfo/botGraphs/" + id + ".json"
+                    graphFile = "information/botGraphs/" + id + ".json"
                 else:
-                    print("WRONG LABEL")
+                    print("ERROR: WRONG LABEL")
                     break
 
                 modelFrame = convertGraphToVec(graphFile)
@@ -209,48 +206,39 @@ def bulkGraphsToFeatures():
                     fw.write("\n")
 
 
-# CHANGE ABSOLUTE PATHS
-
-
-# TwitterID -> timeLine -> graph -> featureVector -> LR(featureVector) -> bot/human
-# TwitterID Datasets -> Merged Into CSV -> Create timeline.jsonl files for each ID -> Create a graph.jsonl for each ID -> Turn each graph into features and store in CSV -> Train model on that CSV
-
-# TwitterID Dataset -> csvToTimeline(dataset)  (creates a bunch of timeline files) ->
-# -> bulkGraphCreation(dir, option) option = 0 for bot dir and 1 for human dir (creates a bunch of graph files) -> bulkGraphsToFeatures() (creates large csv file of graph features) -> shuffle feature.csv ->
-# -> makeModel(featureCSV) -> output (bot/human)
-
-
-#makeLargeCsv()
-
-# convertTsvToCsv("temp/")
-# bulkJsonCreation("E:/Users/Preston/CSE472P2AccountInfo/botTimeline/",0)
-# csvToTimeline("temp/midterm-2018.csv")
-# bulkGraphCreation("accountInfo/verifiedGraphs/", 1)
-# for file in os.listdir("accountInfo/botGraphs/"):
-#     convertGraphToVec("accountInfo/botGraphs/"+file)
-
-
 def fileLen(fileName):
     with open(fileName) as f:
         for i, l in enumerate(f):
             pass
     return i + 1
 
-dataset = pd.read_csv('data/randGraphDataNew.csv', sep=',',header = 0)
-dataset.head()
-X = dataset.iloc[:, 1:]
-Y = dataset.iloc[:, 0]
 
-print(X)
-print(Y)
+def createModel(filePath, option):  # option = 0 for just model creation, option = 1 for testing the model on dataset (This takes a bit of time)
+    dataset = pd.read_csv(filePath, sep=',', header=0)
+    dataset.head()
+    X = dataset.iloc[:, 1:]
+    Y = dataset.iloc[:, 0]
 
-LR = LogisticRegression(random_state=0, solver='lbfgs', multi_class='ovr').fit(X, Y)
-with open('data/randGraphDataNew.csv', 'r') as f:
-    with open('data/output.txt', 'w') as fw:
-        for i in range(0, fileLen('data/randGraphDataNew.csv')-1):
-            if Y[i].strip() == 'bot':
-                fw.write("BOT: " + str(LR.predict(X.iloc[i:, :])) + "\n")
-            else:
-                fw.write("HUMAN: " + str(LR.predict(X.iloc[i:, :])) + "\n")
+    LR = LogisticRegression(random_state=0, solver='lbfgs', multi_class='ovr').fit(X, Y)
+    accuracy = round(LR.score(X, Y), 4)
+    print("Accuracy of the model is: ", round(accuracy*100, 4), "%")
+    if option == 1:
+        totalCount = 0
+        correctCount = 0
+        for i in range(0, fileLen(filePath)-1):
+            if (Y[i].strip() == 'bot' and str(LR.predict(X.iloc[i:, :])[0]).strip() == 'bot') \
+                    or (Y[i].strip() == 'human' and str(LR.predict(X.iloc[i:, :])[0]).strip() == 'human'):
+                correctCount += 1
+            totalCount += 1
+        print("Tested accuracy is: ", round(correctCount/totalCount*100, 4), "%")
 
+# If you want to change the dataset specify the path in the argument
+csvToTimeline("information/userDataset.csv")  # Path to csv where each line is twitterID, label(bot/human). This is limited by TwitterAPI.
+bulkGraphCreation("information/botTimeline/", 0)  # Create activity graph for all bot timelines
+bulkGraphCreation("information/humanTimeline/", 1)  # Create activity graph for all human
+bulkGraphsToFeatures()  # Creates the features vector for each graph and stores them in a csv
+createModel('information/graphFeatures.csv', 1)  # Creates the model with the feature vectors created
 
+# TwitterID Dataset -> csvToTimeline(dataset)  (creates a bunch of timeline files) ->
+# -> bulkGraphCreation(dir, option) option = 0 for bot dir and 1 for human dir (creates a bunch of graph files) -> bulkGraphsToFeatures() (creates large csv file of graph features) ->
+# -> makeModel(featureCSV) -> output (bot/human)
