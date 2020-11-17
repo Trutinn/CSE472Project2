@@ -1,5 +1,7 @@
 import csv
 import json
+import sys
+
 import jsonlines
 from twarc import Twarc
 import networkx as nx
@@ -8,6 +10,7 @@ import os
 import pandas as pd
 from karateclub import Graph2Vec
 from sklearn.linear_model import LogisticRegression
+import argparse
 
 
 consumer_key = '2qGxcEviGiPDBg026BGAJPwR2'
@@ -232,13 +235,29 @@ def createModel(filePath, option):  # option = 0 for just model creation, option
             totalCount += 1
         print("Tested accuracy is: ", round(correctCount/totalCount*100, 4), "%")
 
-# If you want to change the dataset specify the path in the argument
-csvToTimeline("information/userDataset.csv")  # Path to csv where each line is twitterID, label(bot/human). This is limited by TwitterAPI.
-bulkGraphCreation("information/botTimeline/", 0)  # Create activity graph for all bot timelines
-bulkGraphCreation("information/humanTimeline/", 1)  # Create activity graph for all human
-bulkGraphsToFeatures()  # Creates the features vector for each graph and stores them in a csv
-createModel('information/graphFeatures.csv', 1)  # Creates the model with the feature vectors created
 
 # TwitterID Dataset -> csvToTimeline(dataset)  (creates a bunch of timeline files) ->
 # -> bulkGraphCreation(dir, option) option = 0 for bot dir and 1 for human dir (creates a bunch of graph files) -> bulkGraphsToFeatures() (creates large csv file of graph features) ->
 # -> makeModel(featureCSV) -> output (bot/human)
+
+if __name__ == '__main__':
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('-f', '--flag', type=int, default=0, help='0: only executing model creation with given feature vector csv. 1: execution of all steps.')
+    arg_parser.add_argument('-i', '--input', type=str, default='information/userDataset.csv', help='Specify path to your own dataset. Default will use the dataset provided')
+
+    ns, args = arg_parser.parse_known_args(sys.argv)
+    if not os.path.exists(ns.input):
+        print("ERROR: Input dataset path does not exist!")
+    else:
+        if ns.flag == 0:
+            createModel('information/graphFeatures.csv', 1)  # Creates the model with the feature vectors created
+        elif ns.flag == 1:
+            csvToTimeline(ns.input)  # Path to csv where each line is twitterID, label(bot/human). This is limited by TwitterAPI.
+            bulkGraphCreation("information/botTimeline/", 0)  # Create activity graph for all bot timelines
+            bulkGraphCreation("information/humanTimeline/", 1)  # Create activity graph for all human
+            bulkGraphsToFeatures()  # Creates the features vector for each graph and stores them in a csv
+            createModel('information/graphFeatures.csv', 1)  # Creates the model with the feature vectors
+        else:
+            print("ERROR: --flag value is incorrect. Type python dataManipulation.py -h")
+
+
